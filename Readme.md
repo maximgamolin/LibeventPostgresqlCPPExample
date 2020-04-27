@@ -3,6 +3,14 @@ Dependence
 libevent-dev sqlite3
 
 
+```shell script
+git clone https://github.com/Microsoft/vcpkg.git
+cd vcpkg
+./bootstrap-vcpkg.sh
+./vcpkg integrate install
+./vcpkg install jansson
+```
+
 
 Проверить запрос в базу
 
