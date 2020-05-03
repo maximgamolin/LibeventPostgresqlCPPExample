@@ -1,6 +1,7 @@
 //
 // Created by maxim on 19.04.2020.
 //
+#include <iostream>
 #include "string"
 #include "views.h"
 #include "regex"
@@ -8,6 +9,7 @@
 #include "repository.h"
 #include "memory"
 #include "serializers.h"
+#include "parser.h"
 
 void BaseView::notAllowed(struct evhttp_request *request, void *ctx) {
     // если такого урла нет
@@ -27,32 +29,22 @@ void notFound(evhttp_request *request, void *ctx) {
 }
 
 void BaseView::asView(struct evhttp_request *request, void *ctx) {
-    // дабвляем базу данных в контекст,
-    // по ходу из-за каких-то ограничений приходится ее открывать/закрывать при каждом запросе
-    sqlite3 *db;
-    int rc;
-    sqlite3_initialize();
-    sqlite3_open("./test.db", &db);  // TODO путь в константы
-    auto *context = (CbContext *) ctx;
-    context->db = db;
 
     // обработка запроса в зависимости от типа
     switch (request->type) {
         case EVHTTP_REQ_GET:
-            this->GET(request, context);
+            this->GET(request, ctx);
             break;
         case EVHTTP_REQ_POST:
-            this->POST(request, context);
+            this->POST(request, ctx);
             break;
         case EVHTTP_REQ_DELETE:
-            this->DELETE(request, context);
+            this->DELETE(request, ctx);
             break;
         default:
-            this->notAllowed(request, context);
+            this->notAllowed(request, ctx);
             break; // TODO залогировать нестандартное поведение
     }
-    // закрываем базу
-    sqlite3_close(db);
 };
 
 int AuthorDetailView::getAuthorIdFromURL(struct evhttp_request *request) {
@@ -102,6 +94,25 @@ void AuthorDetailView::GET(struct evhttp_request *request, void *ctx) {
 };
 
 void AuthorDetailView::POST(struct evhttp_request *request, void *ctx) {
+    auto *context = (CbContext *) ctx;
+    evbuffer *evb = evbuffer_new();
+    size_t len = evbuffer_get_length(request->input_buffer);
+    auto *rawCreateUserJson = (char *) malloc(len + 1);
+    rawCreateUserJson[len] = '\0';  // remove garbage;
+    evbuffer_copyout(request->input_buffer, rawCreateUserJson, len);
+    std::string createUserJson = rawCreateUserJson;
+    std::cout << std::string(createUserJson) << std::endl;
+    CreateUserDto *createUserDto = createUserDtoFromJson(std::string(createUserJson));
+    //TODO завезти валидацию и проверку пароля
+    std::unique_ptr<AuthorRepository> authorRepository(new AuthorRepository(context->db));
+    User *author = authorRepository->registerUser(createUserDto);
+    std::string serializedAuthor = getUserPublicInfoJson(author);
+    evhttp_add_header(request->output_headers, "Content-Type", "application/json");
+
+    evbuffer_add_printf(evb, "%s", serializedAuthor.c_str());
+    evhttp_send_reply(request, HTTP_OK, "HTTP_OK", evb);
+    evbuffer_free(evb);
+    delete author;
 
 };
 

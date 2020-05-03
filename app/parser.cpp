@@ -7,6 +7,7 @@
 #include "dto.h"
 
 CreateUserDto *createUserDtoFromJson(std::string createUserJsonStr) {
+    // TODO чистить строку в опасности sql-injection
     json_error_t error;
     json_t *createUserJson = json_loads(createUserJsonStr.c_str(), 0, &error);
     auto *createUserDto = new CreateUserDto;

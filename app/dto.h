@@ -4,12 +4,13 @@
 #include "string"
 #include "vector"
 #include <sqlite3.h>
+#include "postgresql/libpq-fe.h"
 
 #ifndef TIWTTER_DTO_H
 #define TIWTTER_DTO_H
 
 struct CbContext {
-    sqlite3 *db;
+    PGconn *db;
 };
 
 struct CreateUserDto {

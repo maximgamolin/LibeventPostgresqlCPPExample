@@ -9,4 +9,4 @@ include_directories(/usr/include)
 link_directories(/usr/lib)
 
 find_package(jansson CONFIG REQUIRED)
-target_link_libraries(tiwtter sqlite3 event jansson::jansson)
+target_link_libraries(tiwtter sqlite3 event jansson::jansson -lpq)

@@ -2,11 +2,11 @@
 // Created by maxim on 18.04.2020.
 //
 
+#include <iostream>
 #include "repository.h"
-#include "sqlite3.h"
 #include "string"
 
-AuthorRepository::AuthorRepository(sqlite3 *db) {
+AuthorRepository::AuthorRepository(PGconn *db) {
     this->db = db;
 }
 
@@ -14,50 +14,56 @@ User *AuthorRepository::getOnlyAuthorPublicInfoById(long int authorId) {
     std::string q = "SELECT "
                     "id, login, password, first_name, last_name, registered_at "
                     "FROM "
-                    "user "
+                    "author "
                     "WHERE "
                     "id = " + std::to_string(authorId) + ";";
-    sqlite3_stmt *ppStmt = nullptr;
-    // Запрос в базу
-    int rc = sqlite3_prepare_v2(this->db, q.c_str(), -1, &ppStmt, nullptr);
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL error: %s\n", sqlite3_errmsg(this->db));
+    PGresult *res = PQexec(this->db, q.c_str());
+    User *user = new User;
+    if (PQresultStatus(res) != PGRES_TUPLES_OK) {
         return nullptr;
     }
-    // Собираем сущность пользователя
-    User *user = new User;
-    while (sqlite3_step(ppStmt) != SQLITE_DONE) {
-        int num_cols = sqlite3_column_count(ppStmt);
-        for (int i = 0; i < num_cols; i++) {
-            switch (i) {
-                case USER_TABLE_ID:
-                    user->id = sqlite3_column_int(ppStmt, i);
-                    break;
-                case USER_TABLE_LOGIN:
-                    user->login = (const char *) sqlite3_column_text(ppStmt, i);
-                    break;
-                case USER_TABLE_FIRST_NAME:
-                    user->firstName = (const char *) sqlite3_column_text(ppStmt, i);
-                    break;
-                case USER_TABLE_LAST_NAME:
-                    user->lastName = (const char *) sqlite3_column_text(ppStmt, i);
-                case USER_TABLE_REGISTERED_AT:
-                    strptime(
-                            (const char *) sqlite3_column_text(ppStmt, i),
-                            "%Y-%m-%d %H:%M:%S",
-                            &user->registeredAt
-                    );
-                    break;
-                default:
-                    // TODO добавить логгирование нестандартного поведения
-                    break;
-            }
-        }
-        break; // TODO допилить обработку когда возвращается несколько или 0 пользователей, логгирование
-    };
-    sqlite3_finalize(ppStmt);
+    int nrows = PQntuples(res);
+    // TODO обработать строки больше одной и 0 строк
+    for (int i = 0; i < nrows; i++) {
+        user->id = atoi(PQgetvalue(res, i, USER_TABLE_ID));
+        user->login = PQgetvalue(res, i, USER_TABLE_LOGIN);
+        user->firstName = PQgetvalue(res, i, USER_TABLE_FIRST_NAME);
+        user->lastName = PQgetvalue(res, i, USER_TABLE_LAST_NAME);
+        strptime(
+                (const char *) PQgetvalue(res, i, USER_TABLE_REGISTERED_AT),
+                "%Y-%m-%d %H:%M:%S",
+                &user->registeredAt
+        );
+    }
     return user;
-}
+};
 
-//INSERT INTO "user" (login, password, first_name, last_name )
-//VALUES ('bob', 'alligator43', 'bob', 'kelso');
+
+User *AuthorRepository::registerUser(CreateUserDto *createUserDto) {
+    // TODO Хранить хеш от пароля, а не пароль
+    std::string q = "INSERT INTO \"author\" (login, password, first_name, last_name ) "
+                    "VALUES ('" + createUserDto->login + "','"
+                    + createUserDto->password + "','"
+                    + createUserDto->firstName + "','"
+                    + createUserDto->lastName + "') "
+                                                "RETURNING id, login, password, first_name, last_name, registered_at ;";
+    PGresult *res = PQexec(this->db, q.c_str());
+    User *user = new User;
+    if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+        return nullptr;
+    }
+    int nrows = PQntuples(res);
+    // TODO обработать строки больше одной и 0 строк
+    for (int i = 0; i < nrows; i++) {
+        user->id = atoi(PQgetvalue(res, i, USER_TABLE_ID));
+        user->login = PQgetvalue(res, i, USER_TABLE_LOGIN);
+        user->firstName = PQgetvalue(res, i, USER_TABLE_FIRST_NAME);
+        user->lastName = PQgetvalue(res, i, USER_TABLE_LAST_NAME);
+        strptime(
+                (const char *) PQgetvalue(res, i, USER_TABLE_REGISTERED_AT),
+                "%Y-%m-%d %H:%M:%S",
+                &user->registeredAt
+        );
+    }
+    return user;
+};

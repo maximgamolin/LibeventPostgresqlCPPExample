@@ -4,8 +4,8 @@
 #include <fstream>
 #include "memory"
 #include "app/views.h"
-#include "sqlite3.h"
 #include "app/dto.h"
+#include "postgresql/libpq-fe.h"
 
 void pathFinder(struct evhttp_request *request, void *ctx) {
     printf("Request from: %s:%d URI: %s\n", request->remote_host, request->remote_port, request->uri);
@@ -28,6 +28,18 @@ void pathFinder(struct evhttp_request *request, void *ctx) {
     notFound(request, ctx);
 };
 
+static void
+processNotice(void *arg, const char *message) {
+
+
+}
+
+static void
+clearRes(PGresult *res) {
+    PQclear(res);
+    res = nullptr;
+}
+
 std::string getMigrations() {
     std::string result;
     std::ifstream file("migrations/init.sql");
@@ -41,10 +53,7 @@ std::string getMigrations() {
 int main(int argc, char *argv[]) {
     struct event_base *ev_base;
     struct evhttp *ev_http;
-    sqlite3 *db;
-    int rc;
     std::string migrations;
-    char *zErrMsg = nullptr;
 
     ev_base = event_init();
 
@@ -55,26 +64,26 @@ int main(int argc, char *argv[]) {
     }
     // Содаем базу и применяем миграции TODO вынести в флаг
     migrations = getMigrations();
-    sqlite3_initialize();
-    rc = sqlite3_open("./test.db", &db); // TODO путь в константы
-    if (rc) {
-        fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+    PGconn *conn = PQconnectdb("user=twitter password=twitter host=127.0.0.1 dbname=twitter");
+    if (PQstatus(conn) != CONNECTION_OK) {
+        std::cout << PQerrorMessage(conn) << std::endl;
         return 1;
-    } else {
-        fprintf(stderr, "Opened database successfully\n");
     }
-    rc = sqlite3_exec(db, migrations.c_str(), nullptr, nullptr, &zErrMsg);
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL error: %s\n", zErrMsg);
-        sqlite3_free(zErrMsg);
-    } else {
-        fprintf(stdout, "Migrations applied successfully\n");
+
+    PQsetNoticeProcessor(conn, processNotice, nullptr); // какой-то костыль
+    PGresult *res = PQexec(conn, migrations.c_str());
+    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+        std::cout << PQerrorMessage(conn) << std::endl;
+        return 1;
     }
-    sqlite3_close(db);
+    clearRes(res);
     //Готовим контекс для колбека
     auto *cbContext = new CbContext;
+    cbContext->db = conn;
     //Запускаем калбек
     evhttp_set_gencb(ev_http, pathFinder, cbContext);
     event_base_dispatch(ev_base);
+    //тушим базу TODO (отлавливать ctrl+c)
+    clearRes(res);
     return 0;
 }

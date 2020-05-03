@@ -4,6 +4,7 @@
 
 #include "sqlite3.h"
 #include "entities.h"
+#include "dto.h"
 
 #ifndef TIWTTER_REPOSITORY_H
 #define TIWTTER_REPOSITORY_H
@@ -14,12 +15,13 @@ enum ut {
 
 class AuthorRepository {
 private:
-    sqlite3 *db;
+    PGconn *db;
 public:
-    explicit AuthorRepository(sqlite3 *db);
+    explicit AuthorRepository(PGconn *db);
 
     User *getOnlyAuthorPublicInfoById(long int authorId);
 
+    User *registerUser(CreateUserDto *createUserDto);
 };
 
 #endif //TIWTTER_REPOSITORY_H

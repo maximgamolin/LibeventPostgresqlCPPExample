@@ -1,0 +1,16 @@
+version: '3.3'
+
+services:
+  postgres:
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_USER: 'twitter'
+      POSTGRES_PASSWORD: 'twitter'
+      POSTGRES_DB: 'twitter'
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres/:/var/lib/postgresql/data
+      - ./dumps:/dumps
+      
