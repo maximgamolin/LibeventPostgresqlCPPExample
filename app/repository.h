@@ -20,8 +20,9 @@ public:
     explicit AuthorRepository(PGconn *db);
 
     User *getOnlyAuthorPublicInfoById(long int authorId);
-
     User *registerUser(CreateUserDto *createUserDto);
+
+    int deleteUserById(long int authorId);
 };
 
 #endif //TIWTTER_REPOSITORY_H

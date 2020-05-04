@@ -55,6 +55,7 @@ User *AuthorRepository::registerUser(CreateUserDto *createUserDto) {
     int nrows = PQntuples(res);
     // TODO обработать строки больше одной и 0 строк
     for (int i = 0; i < nrows; i++) {
+        //TODO хрупкий код atoi может бросить ошибку
         user->id = atoi(PQgetvalue(res, i, USER_TABLE_ID));
         user->login = PQgetvalue(res, i, USER_TABLE_LOGIN);
         user->firstName = PQgetvalue(res, i, USER_TABLE_FIRST_NAME);
@@ -66,4 +67,12 @@ User *AuthorRepository::registerUser(CreateUserDto *createUserDto) {
         );
     }
     return user;
+};
+
+int AuthorRepository::deleteUserById(long int authorId) {
+    std::string q = "DELETE FROM \"author\" WHERE id = " + std::to_string(authorId) + ";";
+    PGresult *res = PQexec(this->db, q.c_str());
+    if (PQresultStatus(res) != PGRES_COMMAND_OK)
+        return 1;
+    return 0;
 };

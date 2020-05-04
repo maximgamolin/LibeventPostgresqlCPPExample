@@ -117,5 +117,24 @@ void AuthorDetailView::POST(struct evhttp_request *request, void *ctx) {
 };
 
 void AuthorDetailView::DELETE(struct evhttp_request *request, void *ctx) {
+    auto *context = (CbContext *) ctx;
+    // получаем id автора
+    int authorId = this->getAuthorIdFromURL(request);
+    evbuffer *evb = evbuffer_new();
+    if (authorId == 0) {
+        // если authorId кривой
+        notFound(request, ctx);
+        return;
+    }
+    std::unique_ptr<AuthorRepository> authorRepository(new AuthorRepository(context->db));
+    int resultOfDelete = authorRepository->deleteUserById(authorId);\
+    if (resultOfDelete) {
+        notFound(request, ctx);
+        return;
+    }
+    evhttp_add_header(request->output_headers, "Content-Type", "application/json");
 
+    evbuffer_add_printf(evb, "{}");
+    evhttp_send_reply(request, HTTP_OK, "HTTP_OK", evb);
+    evbuffer_free(evb);
 };
