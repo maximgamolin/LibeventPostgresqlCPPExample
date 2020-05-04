@@ -47,6 +47,18 @@ void BaseView::asView(struct evhttp_request *request, void *ctx) {
     }
 };
 
+void BaseView::GET(evhttp_request *request, void *ctx) {
+    this->notAllowed(request, ctx);
+}
+
+void BaseView::POST(evhttp_request *request, void *ctx) {
+    this->notAllowed(request, ctx);
+}
+
+void BaseView::DELETE(evhttp_request *request, void *ctx) {
+    this->notAllowed(request, ctx);
+}
+
 int AuthorDetailView::getAuthorIdFromURL(struct evhttp_request *request) {
     std::string path = evhttp_uri_get_path(request->uri_elems);
     int authorId = 0;
@@ -93,29 +105,6 @@ void AuthorDetailView::GET(struct evhttp_request *request, void *ctx) {
     delete author;
 };
 
-void AuthorDetailView::POST(struct evhttp_request *request, void *ctx) {
-    auto *context = (CbContext *) ctx;
-    evbuffer *evb = evbuffer_new();
-    size_t len = evbuffer_get_length(request->input_buffer);
-    auto *rawCreateUserJson = (char *) malloc(len + 1);
-    rawCreateUserJson[len] = '\0';  // remove garbage;
-    evbuffer_copyout(request->input_buffer, rawCreateUserJson, len);
-    std::string createUserJson = rawCreateUserJson;
-    std::cout << std::string(createUserJson) << std::endl;
-    CreateUserDto *createUserDto = createUserDtoFromJson(std::string(createUserJson));
-    //TODO завезти валидацию и проверку пароля
-    std::unique_ptr<AuthorRepository> authorRepository(new AuthorRepository(context->db));
-    User *author = authorRepository->registerUser(createUserDto);
-    std::string serializedAuthor = getUserPublicInfoJson(author);
-    evhttp_add_header(request->output_headers, "Content-Type", "application/json");
-
-    evbuffer_add_printf(evb, "%s", serializedAuthor.c_str());
-    evhttp_send_reply(request, HTTP_OK, "HTTP_OK", evb);
-    evbuffer_free(evb);
-    delete author;
-
-};
-
 void AuthorDetailView::DELETE(struct evhttp_request *request, void *ctx) {
     auto *context = (CbContext *) ctx;
     // получаем id автора
@@ -137,4 +126,27 @@ void AuthorDetailView::DELETE(struct evhttp_request *request, void *ctx) {
     evbuffer_add_printf(evb, "{}");
     evhttp_send_reply(request, HTTP_OK, "HTTP_OK", evb);
     evbuffer_free(evb);
+};
+
+void AuthroListView::POST(struct evhttp_request *request, void *ctx) {
+    auto *context = (CbContext *) ctx;
+    evbuffer *evb = evbuffer_new();
+    size_t len = evbuffer_get_length(request->input_buffer);
+    auto *rawCreateUserJson = (char *) malloc(len + 1);
+    rawCreateUserJson[len] = '\0';  // remove garbage;
+    evbuffer_copyout(request->input_buffer, rawCreateUserJson, len);
+    std::string createUserJson = rawCreateUserJson;
+    std::cout << std::string(createUserJson) << std::endl;
+    CreateUserDto *createUserDto = createUserDtoFromJson(std::string(createUserJson));
+    //TODO завезти валидацию и проверку пароля
+    std::unique_ptr<AuthorRepository> authorRepository(new AuthorRepository(context->db));
+    User *author = authorRepository->registerUser(createUserDto);
+    std::string serializedAuthor = getUserPublicInfoJson(author);
+    evhttp_add_header(request->output_headers, "Content-Type", "application/json");
+
+    evbuffer_add_printf(evb, "%s", serializedAuthor.c_str());
+    evhttp_send_reply(request, HTTP_OK, "HTTP_OK", evb);
+    evbuffer_free(evb);
+    delete author;
+
 };

@@ -10,27 +10,30 @@ void notFound(evhttp_request *request, void *ctx);
 
 class BaseView {
 public:
-    virtual void GET(evhttp_request *request, void *ctx) = 0;
+    virtual void GET(evhttp_request *request, void *ctx);
 
-    virtual void POST(evhttp_request *request, void *ctx) = 0;
+    virtual void POST(evhttp_request *request, void *ctx);
 
-    virtual void DELETE(evhttp_request *request, void *ctx) = 0;
+    virtual void DELETE(evhttp_request *request, void *ctx);
 
-    virtual void notAllowed(evhttp_request *request, void *ctx);
+    void notAllowed(evhttp_request *request, void *ctx);
 
-    virtual void asView(evhttp_request *request, void *ctx);
+    void asView(evhttp_request *request, void *ctx);
 };
 
 class AuthorDetailView : public BaseView {
 private:
-    int getAuthorIdFromURL(struct evhttp_request *request);
+    static int getAuthorIdFromURL(struct evhttp_request *request);
 
 public:
     void GET(evhttp_request *request, void *ctx);
 
-    void POST(evhttp_request *request, void *ctx);
-
     void DELETE(evhttp_request *request, void *ctx);
+};
+
+class AuthroListView : public BaseView {
+//    void GET(evhttp_request *request, void *ctx);
+    void POST(evhttp_request *request, void *ctx);
 };
 
 #endif //TIWTTER_VIEWS_H

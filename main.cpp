@@ -5,24 +5,28 @@
 #include "memory"
 #include "app/views.h"
 #include "app/dto.h"
+#include "map"
 #include "postgresql/libpq-fe.h"
 
 void pathFinder(struct evhttp_request *request, void *ctx) {
     printf("Request from: %s:%d URI: %s\n", request->remote_host, request->remote_port, request->uri);
     regex_t authorDetailPattern;
-    int err, regerr;
-
-    regcomp(&authorDetailPattern, "^\\/author\\/?[0-9]*\\/?$", REG_EXTENDED);
-
-
-    const char *path = evhttp_uri_get_path(request->uri_elems);
     regmatch_t pm;
-    //TODO обработка нескольких уролов в цикле
-    regerr = regexec(&authorDetailPattern, path, 0, &pm, 0);
-    if (regerr == 0) {
-        std::unique_ptr<AuthorDetailView> authorDetailView(new AuthorDetailView());
-        authorDetailView->asView(request, ctx);
-        return;
+    int regerr;
+    const char *path = evhttp_uri_get_path(request->uri_elems);
+    std::map<std::string, BaseView *> urls = {
+            {std::string("^\\/author\\/[0-9]+\\/?$"), new AuthorDetailView},
+            {std::string("^\\/author\\/?$"),          new AuthroListView},
+    };
+    auto it = urls.begin();
+    for (int i = 0; it != urls.end(); it++, i++) {
+        regcomp(&authorDetailPattern, it->first.c_str(), REG_EXTENDED);
+        //TODO обработка нескольких уролов в цикле
+        regerr = regexec(&authorDetailPattern, path, 0, &pm, 0);
+        if (regerr == 0) {
+            it->second->asView(request, ctx);
+            return;
+        };
     };
 
     notFound(request, ctx);
