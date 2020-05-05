@@ -22,6 +22,8 @@ public:
     User *getOnlyAuthorPublicInfoById(long int authorId);
     User *registerUser(CreateUserDto *createUserDto);
 
+    ListOfUsers *getListOfUsers(int offset, int limit);
+
     int deleteUserById(long int authorId);
 };
 

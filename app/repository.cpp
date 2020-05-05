@@ -76,3 +76,37 @@ int AuthorRepository::deleteUserById(long int authorId) {
         return 1;
     return 0;
 };
+
+ListOfUsers *AuthorRepository::getListOfUsers(int offset, int limit) {
+    auto *listOfUsers = new ListOfUsers;
+    int usersInArray;
+    listOfUsers->offset = offset;
+    listOfUsers->limit = limit;
+    PGresult *res = PQexec(this->db, "SELECT COUNT(*) FROM \"author\"");
+    if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+        return nullptr;
+    }
+    listOfUsers->count = atoi(PQgetvalue(res, 0, 0));
+    std::string q = "SELECT "
+                    "id, login, password, first_name, last_name, registered_at "
+                    "FROM "
+                    "author "
+                    "OFFSET " + std::to_string(offset) + " LIMIT " + std::to_string(limit) + ";";
+    PQclear(res);
+    res = PQexec(this->db, q.c_str());
+    int nrows = PQntuples(res);
+    for (int i = 0; i < nrows; i++) {
+        usersInArray = listOfUsers->users.size();
+        listOfUsers->users.push_back(new User);
+        listOfUsers->users[usersInArray]->id = atoi(PQgetvalue(res, i, USER_TABLE_ID));
+        listOfUsers->users[usersInArray]->login = PQgetvalue(res, i, USER_TABLE_LOGIN);
+        listOfUsers->users[usersInArray]->firstName = PQgetvalue(res, i, USER_TABLE_FIRST_NAME);
+        listOfUsers->users[usersInArray]->lastName = PQgetvalue(res, i, USER_TABLE_LAST_NAME);
+        strptime(
+                (const char *) PQgetvalue(res, i, USER_TABLE_REGISTERED_AT),
+                "%Y-%m-%d %H:%M:%S",
+                &listOfUsers->users[usersInArray]->registeredAt
+        );
+    }
+    return listOfUsers;
+}

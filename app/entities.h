@@ -22,6 +22,15 @@ struct User {
     tm registeredAt;
     std::vector<Tweet> tweets;
 };
+
+
+struct ListOfUsers {
+    int offset;
+    int limit;
+    int count;
+    std::vector<User *> users;
+};
+
 #endif //TIWTTER_ENTITIES_H
 
 

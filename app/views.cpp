@@ -10,6 +10,8 @@
 #include "memory"
 #include "serializers.h"
 #include "parser.h"
+#include "const.h"
+
 
 void BaseView::notAllowed(struct evhttp_request *request, void *ctx) {
     // если такого урла нет
@@ -127,6 +129,32 @@ void AuthorDetailView::DELETE(struct evhttp_request *request, void *ctx) {
     evhttp_send_reply(request, HTTP_OK, "HTTP_OK", evb);
     evbuffer_free(evb);
 };
+
+void AuthroListView::GET(evhttp_request *request, void *ctx) {
+    evbuffer *evb = evbuffer_new();
+    auto *context = (CbContext *) ctx;
+    int pageNum = 1;
+    int offset, limit;
+    struct evkeyvalq uri_params;
+    evhttp_parse_query(request->uri, &uri_params);
+    const char *rawPageNums = evhttp_find_header(&uri_params, "page");
+    if (rawPageNums != nullptr) {
+        //TODO atoi может упасть
+        pageNum = atoi(rawPageNums);
+    }
+    limit = pageNum * LIMIT_AUTHORS_PER_PAGE;
+    offset = limit - LIMIT_AUTHORS_PER_PAGE;
+
+    std::unique_ptr<AuthorRepository> authorRepository(new AuthorRepository(context->db));
+    ListOfUsers *listOfUsers = authorRepository->getListOfUsers(offset, limit);
+    std::string serializedAuthorList = getUserListJson(listOfUsers);
+    evhttp_add_header(request->output_headers, "Content-Type", "application/json");
+
+    evbuffer_add_printf(evb, "%s", serializedAuthorList.c_str());
+    evhttp_send_reply(request, HTTP_OK, "HTTP_OK", evb);
+    evbuffer_free(evb);
+    delete listOfUsers;
+}
 
 void AuthroListView::POST(struct evhttp_request *request, void *ctx) {
     auto *context = (CbContext *) ctx;

@@ -32,7 +32,8 @@ public:
 };
 
 class AuthroListView : public BaseView {
-//    void GET(evhttp_request *request, void *ctx);
+    void GET(evhttp_request *request, void *ctx);
+
     void POST(evhttp_request *request, void *ctx);
 };
 
