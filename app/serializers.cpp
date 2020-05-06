@@ -13,8 +13,8 @@ std::string getUserPublicInfoJson(User *user) {
                          "\"login\": \"" + user->login + "\"," +
                          "\"firstName\": \"" + user->firstName + "\"," +
                          "\"lastName\": \"" + user->lastName + "\"," +
-                         "\"registeredAt\": \"" + resultDate + "\""
-                                                               "}";
+                         "\"registeredAt\": \"" + resultDate + "\"" +
+                         "}";
 
     return result;
 };
