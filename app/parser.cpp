@@ -6,7 +6,38 @@
 #include <jansson.h>
 #include "dto.h"
 
-CreateUserDto *createUserDtoFromJson(std::string createUserJsonStr) {
+LoginPasswordDto *createLoginPasswordDtoFromJson(const std::string &loginPasswordRaw) {
+    // TODO чистить строку в опасности sql-injection
+    json_error_t error;
+    json_t *loginPasswordJson = json_loads(loginPasswordRaw.c_str(), 0, &error);
+    auto *loginPasswordDto = new LoginPasswordDto;
+    if (!loginPasswordJson) {
+        fprintf(stderr, "error: on line %d: %s\n", error.line, error.text);
+        return nullptr;
+    }
+    //получаем логин
+    json_t *login = json_object_get(loginPasswordJson, "login");
+    if (!json_is_string(login)) {
+        fprintf(stderr, "error: login is not a string\n");
+        json_decref(loginPasswordJson);
+        return nullptr;
+    }
+    loginPasswordDto->login = json_string_value(login);
+    delete login;
+    //получаем пароль
+    json_t *password = json_object_get(loginPasswordJson, "password");
+    if (!json_is_string(password)) {
+        fprintf(stderr, "error: password is not a string\n");
+        json_decref(loginPasswordJson);
+        return nullptr;
+    }
+    loginPasswordDto->password = json_string_value(password);
+    delete password;
+    json_decref(loginPasswordJson);
+    return loginPasswordDto;
+};
+
+CreateUserDto *createUserDtoFromJson(const std::string &createUserJsonStr) {
     // TODO чистить строку в опасности sql-injection
     json_error_t error;
     json_t *createUserJson = json_loads(createUserJsonStr.c_str(), 0, &error);

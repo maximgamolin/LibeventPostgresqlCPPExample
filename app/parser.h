@@ -7,6 +7,8 @@
 #ifndef TIWTTER_PARSER_H
 #define TIWTTER_PARSER_H
 
-CreateUserDto *createUserDtoFromJson(std::string createUserJson);
+CreateUserDto *createUserDtoFromJson(const std::string &createUserJson);
+
+LoginPasswordDto *createLoginPasswordDtoFromJson(const std::string &loginPasswordRaw);
 
 #endif //TIWTTER_PARSER_H

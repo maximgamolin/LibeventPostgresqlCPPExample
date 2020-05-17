@@ -3,6 +3,7 @@
 //
 #include "string"
 #include "vector"
+#include "entities.h"
 #include <sqlite3.h>
 #include "postgresql/libpq-fe.h"
 
@@ -11,6 +12,7 @@
 
 struct CbContext {
     PGconn *db;
+    RequestUser *user;
 };
 
 struct CreateUserDto {
@@ -21,5 +23,9 @@ struct CreateUserDto {
     std::string lastName;
 };
 
+struct LoginPasswordDto {
+    std::string login;
+    std::string password;
+};
 #endif //TIWTTER_DTO_H
 

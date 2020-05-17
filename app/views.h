@@ -16,7 +16,7 @@ public:
 
     virtual void DELETE(evhttp_request *request, void *ctx);
 
-    void notAllowed(evhttp_request *request, void *ctx);
+    static void notAllowed(evhttp_request *request, void *ctx);
 
     void asView(evhttp_request *request, void *ctx);
 };
@@ -35,6 +35,21 @@ class AuthroListView : public BaseView {
     void GET(evhttp_request *request, void *ctx);
 
     void POST(evhttp_request *request, void *ctx);
+};
+
+
+class LoginView : public BaseView {
+private:
+    void invalidLoginOrPassword(evhttp_request *request, void *ctx);
+
+public:
+    void POST(evhttp_request *request, void *ctx);
+};
+
+
+class LogoutView : public BaseView {
+public:
+    void GET(evhttp_request *request, void *ctx);
 };
 
 #endif //TIWTTER_VIEWS_H

@@ -4,6 +4,7 @@
 #include <fstream>
 #include "app/views.h"
 #include "app/dto.h"
+#include "app/middleware.h"
 #include "map"
 #include "postgresql/libpq-fe.h"
 
@@ -13,14 +14,22 @@ void pathFinder(struct evhttp_request *request, void *ctx) {
     regmatch_t pm;
     int regerr;
     const char *path = evhttp_uri_get_path(request->uri_elems);
+    //urls
     std::map<std::string, BaseView *> urls = {
-            {std::string("^\\/author\\/[0-9]+\\/?$"), new AuthorDetailView},
+            {std::string(R"(^\/author\/[0-9]+\/?$)"), new AuthorDetailView},
             {std::string("^\\/author\\/?$"),          new AuthroListView},
+            {std::string("^\\/login\\/?$"),           new LoginView}
+    };
+    //middleware
+    BaseMiddleware *middleware[1] = {
+            new AuthMiddleware,
+    };
+    for (auto &middlewareItem : middleware) {
+        middlewareItem->execute(request, ctx);
     };
     auto it = urls.begin();
     for (int i = 0; it != urls.end(); it++, i++) {
         regcomp(&authorDetailPattern, it->first.c_str(), REG_EXTENDED);
-        //TODO обработка нескольких уролов в цикле
         regerr = regexec(&authorDetailPattern, path, 0, &pm, 0);
         if (regerr == 0) {
             it->second->asView(request, ctx);
@@ -61,8 +70,8 @@ int main(int argc, char *argv[]) {
     ev_base = event_init();
 
     ev_http = evhttp_new(ev_base);
-    if (evhttp_bind_socket(ev_http, "localhost", (u_short) 5555)) {
-        printf("Failed to bind localhost:5555\n");
+    if (evhttp_bind_socket(ev_http, "0.0.0.0", (u_short) 5555)) {
+        printf("Failed to bind 0.0.0.0:5555\n");
         exit(1);
     }
     // Содаем базу и применяем миграции TODO вынести в флаг

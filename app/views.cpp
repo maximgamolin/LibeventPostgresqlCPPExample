@@ -11,6 +11,7 @@
 #include "serializers.h"
 #include "parser.h"
 #include "const.h"
+#include "middleware.h"
 
 
 void BaseView::notAllowed(struct evhttp_request *request, void *ctx) {
@@ -177,4 +178,39 @@ void AuthroListView::POST(struct evhttp_request *request, void *ctx) {
     evbuffer_free(evb);
     delete author;
 
+};
+
+void LoginView::invalidLoginOrPassword(evhttp_request *request, void *ctx) {
+    evbuffer *evb = evbuffer_new();
+    evhttp_add_header(request->output_headers, "Content-Type", "application/json");
+
+    evbuffer_add_printf(evb, R"({"error": "Unknown user"})");
+    evhttp_send_reply(request, 401, "HTTP_Unauthorized", evb);
+    evbuffer_free(evb);
+}
+
+void LoginView::POST(evhttp_request *request, void *ctx) {
+    auto *context = (CbContext *) ctx;
+    evbuffer *evb = evbuffer_new();
+    size_t len = evbuffer_get_length(request->input_buffer);
+    auto *loginPassRawJson = (char *) malloc(len + 1);
+    loginPassRawJson[len] = '\0';  // remove garbage;
+    evbuffer_copyout(request->input_buffer, loginPassRawJson, len);
+    auto *loginPasswordDto = createLoginPasswordDtoFromJson(loginPassRawJson);
+    std::unique_ptr<AuthorRepository> authorRepository(new AuthorRepository(context->db));
+    unsigned int userId = authorRepository->getUserIdByLoginPassword(
+            loginPasswordDto->login,
+            loginPasswordDto->password
+    );
+    if (userId == 0) {
+        this->invalidLoginOrPassword(request, ctx);
+        return;
+    }
+    std::unique_ptr<SessionRepository> sessionRepository(new SessionRepository(context->db));
+    std::string token = AuthMiddleware::_buildCookie(request->remote_host);
+    sessionRepository->setSessionByUserId(userId, token);
+    evhttp_add_header(request->output_headers, "Content-Type", "application/json");
+    evbuffer_add_printf(evb, "{}");
+    evhttp_send_reply(request, HTTP_OK, "HTTP_OK", evb);
+    evbuffer_free(evb);
 };

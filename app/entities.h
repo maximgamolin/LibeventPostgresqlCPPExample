@@ -31,6 +31,15 @@ struct ListOfUsers {
     std::vector<User *> users;
 };
 
+
+struct RequestUser {
+    long int id;
+    std::string login;
+    std::string firstName;
+    std::string lastName;
+    tm registeredAt;
+    bool isAnonymous = false;
+};
 #endif //TIWTTER_ENTITIES_H
 
 

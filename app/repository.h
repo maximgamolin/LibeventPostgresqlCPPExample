@@ -13,18 +13,36 @@ enum ut {
     USER_TABLE_FIRST_NAME, USER_TABLE_LAST_NAME, USER_TABLE_REGISTERED_AT
 };
 
-class AuthorRepository {
-private:
+class BaseRepository {
+protected:
     PGconn *db;
 public:
-    explicit AuthorRepository(PGconn *db);
+    explicit BaseRepository(PGconn *db);
+};
+
+class AuthorRepository : public BaseRepository {
+public:
+    using BaseRepository::BaseRepository;
 
     User *getOnlyAuthorPublicInfoById(long int authorId);
+
     User *registerUser(CreateUserDto *createUserDto);
+
+    RequestUser *getRequestUserBySession(std::string token);
 
     ListOfUsers *getListOfUsers(int offset, int limit);
 
     int deleteUserById(long int authorId);
+
+    unsigned int getUserIdByLoginPassword(const std::string &login, const std::string &pass);
+};
+
+
+class SessionRepository : public BaseRepository {
+public:
+    using BaseRepository::BaseRepository;
+
+    void setSessionByUserId(unsigned int userId, const std::string &token);
 };
 
 #endif //TIWTTER_REPOSITORY_H
