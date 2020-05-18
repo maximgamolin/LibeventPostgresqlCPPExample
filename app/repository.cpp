@@ -175,3 +175,8 @@ void SessionRepository::setSessionByUserId(unsigned int userId, const std::strin
                                                                            "SET token = '" + token + "';";
     PQexec(this->db, q.c_str());
 }
+
+void SessionRepository::removeSessionByToken(const std::string token) {
+    std::string q = "DELETE FROM session WHERE token = '" + token + "';";
+    PQexec(this->db, q.c_str());
+}

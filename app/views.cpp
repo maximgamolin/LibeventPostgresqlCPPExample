@@ -214,3 +214,15 @@ void LoginView::POST(evhttp_request *request, void *ctx) {
     evhttp_send_reply(request, HTTP_OK, "HTTP_OK", evb);
     evbuffer_free(evb);
 };
+
+void LogoutView::GET(evhttp_request *request, void *ctx) {
+    auto *context = (CbContext *) ctx;
+    evbuffer *evb = evbuffer_new();
+    std::string token = AuthMiddleware::_buildCookie(request->remote_host);
+    std::unique_ptr<SessionRepository> sessionRepository(new SessionRepository(context->db));
+    sessionRepository->removeSessionByToken(token);
+    evhttp_add_header(request->output_headers, "Content-Type", "application/json");
+    evbuffer_add_printf(evb, "{}");
+    evhttp_send_reply(request, HTTP_OK, "HTTP_OK", evb);
+    evbuffer_free(evb);
+}

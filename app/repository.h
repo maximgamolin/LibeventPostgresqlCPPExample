@@ -43,6 +43,8 @@ public:
     using BaseRepository::BaseRepository;
 
     void setSessionByUserId(unsigned int userId, const std::string &token);
+
+    void removeSessionByToken(const std::string token);
 };
 
 #endif //TIWTTER_REPOSITORY_H
