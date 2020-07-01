@@ -7,7 +7,7 @@
 #ifndef TIWTTER_ENTITIES_H
 #define TIWTTER_ENTITIES_H
 struct Tweet {
-    long int id;
+    long id;
     std::string title;
     std::string body;
     tm createdAt;
@@ -31,7 +31,12 @@ struct ListOfUsers {
     std::vector<User *> users;
 };
 
-
+struct ListOfTweets {
+    int offset;
+    int limit;
+    int count;
+    std::vector<Tweet *> *tweets;
+};
 struct RequestUser {
     long int id;
     std::string login;

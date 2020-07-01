@@ -5,7 +5,7 @@
 #include "ctime"
 #include "vector"
 
-std::string getUserPublicInfoJson(User *user) {
+std::string serializeUserPublicInfoJson(User *user) {
     std::string resultDate = std::asctime(&user->registeredAt);
     resultDate.pop_back();
     std::string result = "{"
@@ -23,7 +23,7 @@ std::string __onlyUsersForJson(std::vector<User *> users) {
     int len = users.size();
     std::string result;
     for (int i = 0; i < len; i++) {
-        result += getUserPublicInfoJson(users[i]);
+        result += serializeUserPublicInfoJson(users[i]);
         if (len - i > 1) {
             result += ",";
         }
@@ -32,7 +32,7 @@ std::string __onlyUsersForJson(std::vector<User *> users) {
 }
 
 
-std::string getUserListJson(ListOfUsers *listOfUsers) {
+std::string serializeUserListJson(ListOfUsers *listOfUsers) {
     int page = listOfUsers->limit / LIMIT_AUTHORS_PER_PAGE;
     bool hasNext = listOfUsers->limit < listOfUsers->count;
     std::string resultData = "{"
@@ -44,3 +44,41 @@ std::string getUserListJson(ListOfUsers *listOfUsers) {
                              "}";
     return resultData;
 };
+
+std::string serializeTweet(Tweet *tweet) {
+    std::string createdAt = std::asctime(&tweet->createdAt);
+    createdAt.pop_back();
+    std::string result = "{"
+                         "\"id\": " + std::to_string(tweet->id) + "," +
+                         "\"title\": \"" + tweet->title + "\"," +
+                         "\"body\": \"" + tweet->body + "\"," +
+                         "\"createdAt\": \"" + createdAt + "\"" +
+                         "}";
+    return result;
+}
+
+std::string __tweetList(std::vector<Tweet *> tweets) {
+    int len = tweets.size();
+    std::string result;
+    for (int i = 0; i < len; i++) {
+        result += serializeTweet(tweets[i]);
+        if (len - i > 1) {
+            result += ",";
+        }
+    }
+    return result;
+}
+
+
+std::string serializeTweetList(ListOfTweets *listOfTweets) {
+    int page = listOfTweets->limit / LIMIT_TWEETS_PER_PAGE;
+    bool hasNext = listOfTweets->limit < listOfTweets->count;
+    std::string resultData = "{"
+                             "\"page\":" + std::to_string(page) + "," +
+                             "\"count\":" + std::to_string(listOfTweets->count) + "," +
+                             "\"hasNext\":" + std::to_string(hasNext) + "," +
+                             "\"page\":" + std::to_string(page) + "," +
+                             "\"tweets\": [" + __tweetList(*listOfTweets->tweets) + "]" +
+                             "}";
+    return resultData;
+}

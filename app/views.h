@@ -22,19 +22,16 @@ public:
 };
 
 class AuthorDetailView : public BaseView {
-private:
-    static int getAuthorIdFromURL(struct evhttp_request *request);
-
 public:
-    void GET(evhttp_request *request, void *ctx);
+    void GET(evhttp_request *request, void *ctx) override;
 
-    void DELETE(evhttp_request *request, void *ctx);
+    void DELETE(evhttp_request *request, void *ctx) override;
 };
 
 class AuthroListView : public BaseView {
-    void GET(evhttp_request *request, void *ctx);
+    void GET(evhttp_request *request, void *ctx) override;
 
-    void POST(evhttp_request *request, void *ctx);
+    void POST(evhttp_request *request, void *ctx) override;
 };
 
 
@@ -43,13 +40,19 @@ private:
     void invalidLoginOrPassword(evhttp_request *request, void *ctx);
 
 public:
-    void POST(evhttp_request *request, void *ctx);
+    void POST(evhttp_request *request, void *ctx) override;
 };
 
 
 class LogoutView : public BaseView {
 public:
-    void GET(evhttp_request *request, void *ctx);
+    void GET(evhttp_request *request, void *ctx) override;
+};
+
+
+class AuthorTweetView : public BaseView {
+public:
+    void GET(evhttp_request *request, void *ctx) override;
 };
 
 #endif //TIWTTER_VIEWS_H

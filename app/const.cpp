@@ -4,3 +4,4 @@
 #include "const.h"
 
 int LIMIT_AUTHORS_PER_PAGE = 10;
+int LIMIT_TWEETS_PER_PAGE = 10;

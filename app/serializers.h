@@ -8,9 +8,12 @@
 #ifndef TIWTTER_SERIALIZERS_H
 #define TIWTTER_SERIALIZERS_H
 
-std::string getUserPublicInfoJson(User *user);
+std::string serializeUserPublicInfoJson(User *user);
 
-std::string getUserListJson(ListOfUsers *listOfUsers);
+std::string serializeUserListJson(ListOfUsers *listOfUsers);
+
+std::string serializeTweetList(ListOfTweets *listOfTweets);
+
 #endif //TIWTTER_SERIALIZERS_H
 
 

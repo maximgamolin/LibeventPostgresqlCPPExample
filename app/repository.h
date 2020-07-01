@@ -13,6 +13,10 @@ enum ut {
     USER_TABLE_FIRST_NAME, USER_TABLE_LAST_NAME, USER_TABLE_REGISTERED_AT
 };
 
+enum TweetTable {
+    TWEET_ID, TWEET_TITLE, TWEET_BODY, TWEET_CREATED_AT, TWEET_USER_ID
+};
+
 class BaseRepository {
 protected:
     PGconn *db;
@@ -45,6 +49,13 @@ public:
     void setSessionByUserId(unsigned int userId, const std::string &token);
 
     void removeSessionByToken(const std::string token);
+};
+
+
+class TweetRepository : public BaseRepository {
+    using BaseRepository::BaseRepository;
+public:
+    ListOfTweets *getAllUserTweets(long userId, int offset, int limit);
 };
 
 #endif //TIWTTER_REPOSITORY_H

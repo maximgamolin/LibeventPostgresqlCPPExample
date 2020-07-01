@@ -11,6 +11,7 @@
 #include "serializers.h"
 #include "parser.h"
 #include "const.h"
+#include "utils.h"
 #include "middleware.h"
 
 
@@ -62,29 +63,10 @@ void BaseView::DELETE(evhttp_request *request, void *ctx) {
     this->notAllowed(request, ctx);
 }
 
-int AuthorDetailView::getAuthorIdFromURL(struct evhttp_request *request) {
-    std::string path = evhttp_uri_get_path(request->uri_elems);
-    int authorId = 0;
-
-    try {
-        std::regex re("^\\/author\\/([0-9]+)\\/$");
-        std::smatch match;
-        if (std::regex_search(path, match, re) && match.size() > 1) {
-            //TODO хрупкий код, atoi может бросить ошибку
-            authorId = std::stoi(match.str(1));
-        } else {
-            // TODO залогировать
-        }
-    } catch (std::regex_error &e) {
-        // TODO залогировать
-    }
-    return authorId;
-};
-
 void AuthorDetailView::GET(struct evhttp_request *request, void *ctx) {
     auto *context = (CbContext *) ctx;
     // получаем id автора
-    int authorId = this->getAuthorIdFromURL(request);
+    int authorId = getAuthorIdFromUrl(request, "^\\/author\\/([0-9]+)\\/$");
     evbuffer *evb = evbuffer_new();
     if (authorId == 0) {
         // если authorId кривой
@@ -99,7 +81,7 @@ void AuthorDetailView::GET(struct evhttp_request *request, void *ctx) {
         notFound(request, ctx);
         return;
     }
-    std::string serializedAuthor = getUserPublicInfoJson(author);
+    std::string serializedAuthor = serializeUserPublicInfoJson(author);
     evhttp_add_header(request->output_headers, "Content-Type", "application/json");
 
     evbuffer_add_printf(evb, "%s", serializedAuthor.c_str());
@@ -111,7 +93,7 @@ void AuthorDetailView::GET(struct evhttp_request *request, void *ctx) {
 void AuthorDetailView::DELETE(struct evhttp_request *request, void *ctx) {
     auto *context = (CbContext *) ctx;
     // получаем id автора
-    int authorId = this->getAuthorIdFromURL(request);
+    int authorId = getAuthorIdFromUrl(request, "^\\/author\\/([0-9]+)\\/$");
     evbuffer *evb = evbuffer_new();
     if (authorId == 0) {
         // если authorId кривой
@@ -148,7 +130,7 @@ void AuthroListView::GET(evhttp_request *request, void *ctx) {
 
     std::unique_ptr<AuthorRepository> authorRepository(new AuthorRepository(context->db));
     ListOfUsers *listOfUsers = authorRepository->getListOfUsers(offset, limit);
-    std::string serializedAuthorList = getUserListJson(listOfUsers);
+    std::string serializedAuthorList = serializeUserListJson(listOfUsers);
     evhttp_add_header(request->output_headers, "Content-Type", "application/json");
 
     evbuffer_add_printf(evb, "%s", serializedAuthorList.c_str());
@@ -170,7 +152,7 @@ void AuthroListView::POST(struct evhttp_request *request, void *ctx) {
     //TODO завезти валидацию и проверку пароля
     std::unique_ptr<AuthorRepository> authorRepository(new AuthorRepository(context->db));
     User *author = authorRepository->registerUser(createUserDto);
-    std::string serializedAuthor = getUserPublicInfoJson(author);
+    std::string serializedAuthor = serializeUserPublicInfoJson(author);
     evhttp_add_header(request->output_headers, "Content-Type", "application/json");
 
     evbuffer_add_printf(evb, "%s", serializedAuthor.c_str());
@@ -223,6 +205,30 @@ void LogoutView::GET(evhttp_request *request, void *ctx) {
     sessionRepository->removeSessionByToken(token);
     evhttp_add_header(request->output_headers, "Content-Type", "application/json");
     evbuffer_add_printf(evb, "{}");
+    evhttp_send_reply(request, HTTP_OK, "HTTP_OK", evb);
+    evbuffer_free(evb);
+};
+
+void AuthorTweetView::GET(evhttp_request *request, void *ctx) {
+    auto *context = (CbContext *) ctx;
+    evbuffer *evb = evbuffer_new();
+    int authorId = getAuthorIdFromUrl(request, "^\\/author\\/([0-9]+)\\/tweets\\/$");
+    struct evkeyvalq uri_params;
+    evhttp_parse_query(request->uri, &uri_params);
+    int pageNum = 1;
+    const char *rawPageNums = evhttp_find_header(&uri_params, "page");
+    if (rawPageNums != nullptr) {
+        //TODO atoi может упасть
+        pageNum = atoi(rawPageNums);
+    }
+    int limit = pageNum * LIMIT_TWEETS_PER_PAGE;
+    int offset = limit - LIMIT_TWEETS_PER_PAGE;
+    std::unique_ptr<TweetRepository> tweetRepository(new TweetRepository(context->db));
+    auto *listOfTweets = tweetRepository->getAllUserTweets(authorId, offset, limit);
+    std::string resultListOfTweets = serializeTweetList(listOfTweets);
+    evhttp_add_header(request->output_headers, "Content-Type", "application/json");
+
+    evbuffer_add_printf(evb, "%s", resultListOfTweets.c_str());
     evhttp_send_reply(request, HTTP_OK, "HTTP_OK", evb);
     evbuffer_free(evb);
 }

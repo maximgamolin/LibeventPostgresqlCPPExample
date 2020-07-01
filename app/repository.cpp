@@ -2,7 +2,7 @@
 // Created by maxim on 18.04.2020.
 //
 
-#include <iostream>
+#include <vector>
 #include "repository.h"
 #include "string"
 
@@ -179,4 +179,40 @@ void SessionRepository::setSessionByUserId(unsigned int userId, const std::strin
 void SessionRepository::removeSessionByToken(const std::string token) {
     std::string q = "DELETE FROM session WHERE token = '" + token + "';";
     PQexec(this->db, q.c_str());
+}
+
+ListOfTweets *TweetRepository::getAllUserTweets(long userId, int offset, int limit) {
+    auto *listOfTwits = new ListOfTweets;
+    listOfTwits->limit = limit;
+    listOfTwits->offset = offset;
+    PGresult *count_res = PQexec(this->db, "SELECT COUNT(*) FROM \"tweet\"");
+    if (PQresultStatus(count_res) != PGRES_TUPLES_OK) {
+        return nullptr;
+    }
+    listOfTwits->count = atoi(PQgetvalue(count_res, 0, 0));
+    std::string q = "SELECT tw.id, tw.title, tw.body, tw.created_at "
+                    "FROM tweet tw "
+                    "WHERE tw.user_id = " + std::to_string(userId) + " " +
+                    "OFFSET " + std::to_string(offset) + " LIMIT " + std::to_string(limit) + ";";
+    PGresult *val_res = PQexec(this->db, q.c_str());
+    if (PQresultStatus(val_res) != PGRES_TUPLES_OK) {
+        return nullptr;
+    }
+    int nrows = PQntuples(val_res);
+    // TODO обработать строки больше одной и 0 строк
+    listOfTwits->tweets = new std::vector<Tweet *>();
+    for (int i = 0; i < nrows; i++) {
+        auto *tweet = new Tweet;
+        //TODO хрупкий код atoi может бросить ошибку
+        tweet->id = atoi(PQgetvalue(val_res, i, TWEET_ID));
+        tweet->title = PQgetvalue(val_res, i, TWEET_TITLE);
+        tweet->body = PQgetvalue(val_res, i, TWEET_BODY);
+        strptime(
+                (const char *) PQgetvalue(val_res, i, TWEET_CREATED_AT),
+                "%Y-%m-%d %H:%M:%S",
+                &tweet->createdAt
+        );
+        listOfTwits->tweets->push_back(tweet);
+    }
+    return listOfTwits;
 }
