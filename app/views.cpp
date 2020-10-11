@@ -276,7 +276,7 @@ void TweetView::POST(evhttp_request *request, void *ctx) {
 void TweetDetailView::DELETE(evhttp_request *request, void *ctx) {
     auto *context = (CbContext *) ctx;
     auto *evb = evbuffer_new();
-    int tweetId = getIntFormURL(request, R"(^\/tweets\/[0-9]+\/?$)");
+    int tweetId = getIntFormURL(request, "^\\/tweets\\/([0-9]+)\\/$");
 
     std::unique_ptr<TweetRepository> tweetRepository(new TweetRepository(context->db));
     tweetRepository->deleteUserTweet(tweetId, context->user->id);

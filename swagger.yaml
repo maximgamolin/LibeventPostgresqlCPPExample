@@ -1,0 +1,50 @@
+swagger: '2.0'
+info:
+  description: This is a simple API for twiiter example with libevent and postgres
+  version: 1.0.0
+  title: Simple Inventory API for twitter
+  # put the contact info for your development or API team
+  contact:
+    url: https://github.com/maximgamolin
+
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+
+parameters:
+
+  LoginPostBody:
+    name: body
+    in: body
+    required: true
+    schema:
+      $ref: '#/definitions/LoginUser'
+
+paths:
+  /login:
+    post:
+      parameters:
+        - $ref: '#/parameters/LoginPostBody'
+      responses:
+        '200':
+          description: Success
+
+      description: login user
+
+
+#  /author/{authorId}:
+#    get:
+
+
+definitions:
+
+  LoginUser:
+    type: object
+    properties:
+      login:
+        type: string
+        example: admin
+      password:
+        type: string
+        example: lovelovelove
+    description: used for user login
