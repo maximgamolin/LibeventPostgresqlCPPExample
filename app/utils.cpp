@@ -8,7 +8,7 @@
 #include <evhttp.h>
 
 
-int getAuthorIdFromUrl(struct evhttp_request *request, const char *regexp) {
+int getIntFormURL(struct evhttp_request *request, const char *regexp) {
     std::string path = evhttp_uri_get_path(request->uri_elems);
     int authorId = 0;
 
@@ -26,3 +26,4 @@ int getAuthorIdFromUrl(struct evhttp_request *request, const char *regexp) {
     }
     return authorId;
 };
+

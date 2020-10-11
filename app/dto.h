@@ -27,5 +27,10 @@ struct LoginPasswordDto {
     std::string login;
     std::string password;
 };
+
+struct TweetDto {
+    std::string title;
+    std::string body;
+};
 #endif //TIWTTER_DTO_H
 

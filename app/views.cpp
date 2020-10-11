@@ -66,7 +66,7 @@ void BaseView::DELETE(evhttp_request *request, void *ctx) {
 void AuthorDetailView::GET(struct evhttp_request *request, void *ctx) {
     auto *context = (CbContext *) ctx;
     // получаем id автора
-    int authorId = getAuthorIdFromUrl(request, "^\\/author\\/([0-9]+)\\/$");
+    int authorId = getIntFormURL(request, "^\\/author\\/([0-9]+)\\/$");
     evbuffer *evb = evbuffer_new();
     if (authorId == 0) {
         // если authorId кривой
@@ -93,7 +93,7 @@ void AuthorDetailView::GET(struct evhttp_request *request, void *ctx) {
 void AuthorDetailView::DELETE(struct evhttp_request *request, void *ctx) {
     auto *context = (CbContext *) ctx;
     // получаем id автора
-    int authorId = getAuthorIdFromUrl(request, "^\\/author\\/([0-9]+)\\/$");
+    int authorId = getIntFormURL(request, "^\\/author\\/([0-9]+)\\/$");
     evbuffer *evb = evbuffer_new();
     if (authorId == 0) {
         // если authorId кривой
@@ -140,6 +140,7 @@ void AuthroListView::GET(evhttp_request *request, void *ctx) {
 }
 
 void AuthroListView::POST(struct evhttp_request *request, void *ctx) {
+    // Регистрация нового пользователя
     auto *context = (CbContext *) ctx;
     evbuffer *evb = evbuffer_new();
     size_t len = evbuffer_get_length(request->input_buffer);
@@ -212,7 +213,7 @@ void LogoutView::GET(evhttp_request *request, void *ctx) {
 void AuthorTweetView::GET(evhttp_request *request, void *ctx) {
     auto *context = (CbContext *) ctx;
     evbuffer *evb = evbuffer_new();
-    int authorId = getAuthorIdFromUrl(request, "^\\/author\\/([0-9]+)\\/tweets\\/$");
+    int authorId = getIntFormURL(request, "^\\/author\\/([0-9]+)\\/tweets\\/$");
     struct evkeyvalq uri_params;
     evhttp_parse_query(request->uri, &uri_params);
     int pageNum = 1;
@@ -229,6 +230,59 @@ void AuthorTweetView::GET(evhttp_request *request, void *ctx) {
     evhttp_add_header(request->output_headers, "Content-Type", "application/json");
 
     evbuffer_add_printf(evb, "%s", resultListOfTweets.c_str());
+    evhttp_send_reply(request, HTTP_OK, "HTTP_OK", evb);
+    evbuffer_free(evb);
+}
+
+void TweetView::GET(evhttp_request *request, void *ctx) {
+    auto *context = (CbContext *) ctx;
+    evbuffer *evb = evbuffer_new();
+    struct evkeyvalq uri_params;
+    evhttp_parse_query(request->uri, &uri_params);
+    int pageNum = 1;
+    const char *rawPageNums = evhttp_find_header(&uri_params, "page");
+    if (rawPageNums != nullptr) {
+        //TODO atoi может упасть
+        pageNum = atoi(rawPageNums);
+    }
+    int limit = pageNum * LIMIT_TWEETS_PER_PAGE;
+    int offset = limit - LIMIT_TWEETS_PER_PAGE;
+    std::unique_ptr<TweetRepository> tweetRepository(new TweetRepository(context->db));
+    auto *listOfTweets = tweetRepository->getAllTweets(offset, limit);
+    std::string resultListOfTweets = serializeTweetList(listOfTweets);
+    evhttp_add_header(request->output_headers, "Content-Type", "application/json");
+
+    evbuffer_add_printf(evb, "%s", resultListOfTweets.c_str());
+    evhttp_send_reply(request, HTTP_OK, "HTTP_OK", evb);
+    evbuffer_free(evb);
+}
+
+void TweetView::POST(evhttp_request *request, void *ctx) {
+    auto *context = (CbContext *) ctx;
+    evbuffer *evb = evbuffer_new();
+    size_t len = evbuffer_get_length(request->input_buffer);
+    auto *newTweetRawJson = (char *) malloc(len + 1);
+    newTweetRawJson[len] = '\0';  // remove garbage;
+    evbuffer_copyout(request->input_buffer, newTweetRawJson, len);
+    auto tweetDto = createTweetDtoFromJson(newTweetRawJson);
+    std::unique_ptr<TweetRepository> tweetRepository(new TweetRepository(context->db));
+    tweetRepository->createUserTweet(tweetDto, context->user->id);
+    evhttp_add_header(request->output_headers, "Content-Type", "application/json");
+    evbuffer_add_printf(evb, "{}");
+    evhttp_send_reply(request, HTTP_OK, "HTTP_OK", evb);
+    evbuffer_free(evb);
+}
+
+void TweetDetailView::DELETE(evhttp_request *request, void *ctx) {
+    auto *context = (CbContext *) ctx;
+    auto *evb = evbuffer_new();
+    int tweetId = getIntFormURL(request, R"(^\/tweets\/[0-9]+\/?$)");
+
+    std::unique_ptr<TweetRepository> tweetRepository(new TweetRepository(context->db));
+    tweetRepository->deleteUserTweet(tweetId, context->user->id);
+
+    evhttp_add_header(request->output_headers, "Content-Type", "application/json");
+    evbuffer_add_printf(evb, "{}");
     evhttp_send_reply(request, HTTP_OK, "HTTP_OK", evb);
     evbuffer_free(evb);
 }

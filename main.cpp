@@ -16,6 +16,8 @@ void pathFinder(struct evhttp_request *request, void *ctx) {
     const char *path = evhttp_uri_get_path(request->uri_elems);
     //urls
     std::map<std::string, BaseView *> urls = {
+            {std::string(R"(^\/tweets\/[0-9]+\/?$)"),        new TweetDetailView},
+            {std::string("^\\/tweets\\/?$"),                 new TweetView},
             {std::string(R"(^\/author\/[0-9]+\/?$)"),        new AuthorDetailView},
             {std::string(R"(^\/author\/[0-9]+\/tweets/?$)"), new AuthorTweetView},
             {std::string("^\\/author\\/?$"),                 new AuthroListView},

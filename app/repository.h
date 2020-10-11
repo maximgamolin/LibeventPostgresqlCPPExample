@@ -56,6 +56,12 @@ class TweetRepository : public BaseRepository {
     using BaseRepository::BaseRepository;
 public:
     ListOfTweets *getAllUserTweets(long userId, int offset, int limit);
+
+    ListOfTweets *getAllTweets(int offset, int limit);
+
+    void createUserTweet(TweetDto *tweetDto, long UserId);
+
+    void deleteUserTweet(long tweetId, long userId);
 };
 
 #endif //TIWTTER_REPOSITORY_H

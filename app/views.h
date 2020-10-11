@@ -55,6 +55,18 @@ public:
     void GET(evhttp_request *request, void *ctx) override;
 };
 
+class TweetView : public BaseView {
+public:
+    void GET(evhttp_request *request, void *ctx) override;
+
+    void POST(evhttp_request *request, void *ctx) override;
+};
+
+class TweetDetailView : public BaseView {
+public:
+    void DELETE(evhttp_request *request, void *ctx) override;
+};
+
 #endif //TIWTTER_VIEWS_H
 
 

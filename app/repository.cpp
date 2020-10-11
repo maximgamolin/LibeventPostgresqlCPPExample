@@ -182,25 +182,27 @@ void SessionRepository::removeSessionByToken(const std::string token) {
 }
 
 ListOfTweets *TweetRepository::getAllUserTweets(long userId, int offset, int limit) {
-    auto *listOfTwits = new ListOfTweets;
-    listOfTwits->limit = limit;
-    listOfTwits->offset = offset;
-    PGresult *count_res = PQexec(this->db, "SELECT COUNT(*) FROM \"tweet\"");
+    auto *listOfTweets = new ListOfTweets;
+    listOfTweets->limit = limit;
+    listOfTweets->offset = offset;
+    std::string q = "SELECT COUNT(*) FROM \"tweet\" "
+                    "WHERE tw.user_id = " + std::to_string(userId);
+    PGresult *count_res = PQexec(this->db, q.c_str());
     if (PQresultStatus(count_res) != PGRES_TUPLES_OK) {
         return nullptr;
     }
-    listOfTwits->count = atoi(PQgetvalue(count_res, 0, 0));
-    std::string q = "SELECT tw.id, tw.title, tw.body, tw.created_at "
-                    "FROM tweet tw "
-                    "WHERE tw.user_id = " + std::to_string(userId) + " " +
-                    "OFFSET " + std::to_string(offset) + " LIMIT " + std::to_string(limit) + ";";
+    listOfTweets->count = atoi(PQgetvalue(count_res, 0, 0));
+    q = "SELECT tw.id, tw.title, tw.body, tw.created_at "
+        "FROM tweet tw "
+        "WHERE tw.user_id = " + std::to_string(userId) + " " +
+        "OFFSET " + std::to_string(offset) + " LIMIT " + std::to_string(limit) + ";";
     PGresult *val_res = PQexec(this->db, q.c_str());
     if (PQresultStatus(val_res) != PGRES_TUPLES_OK) {
         return nullptr;
     }
     int nrows = PQntuples(val_res);
     // TODO обработать строки больше одной и 0 строк
-    listOfTwits->tweets = new std::vector<Tweet *>();
+    listOfTweets->tweets = new std::vector<Tweet *>();
     for (int i = 0; i < nrows; i++) {
         auto *tweet = new Tweet;
         //TODO хрупкий код atoi может бросить ошибку
@@ -212,7 +214,54 @@ ListOfTweets *TweetRepository::getAllUserTweets(long userId, int offset, int lim
                 "%Y-%m-%d %H:%M:%S",
                 &tweet->createdAt
         );
-        listOfTwits->tweets->push_back(tweet);
+        listOfTweets->tweets->push_back(tweet);
     }
-    return listOfTwits;
+    return listOfTweets;
 }
+
+ListOfTweets *TweetRepository::getAllTweets(int offset, int limit) {
+    auto *listOfTweets = new ListOfTweets;
+    listOfTweets->limit = limit;
+    listOfTweets->offset = offset;
+    std::string q = "SELECT COUNT(*) FROM \"tweet\" ";
+    PGresult *count_res = PQexec(this->db, q.c_str());
+    if (PQresultStatus(count_res) != PGRES_TUPLES_OK) {
+        return nullptr;
+    }
+    listOfTweets->count = atoi(PQgetvalue(count_res, 0, 0));
+    q = "SELECT tw.id, tw.title, tw.body, tw.created_at "
+        "FROM tweet tw "
+        "OFFSET " + std::to_string(offset) + " LIMIT " + std::to_string(limit) + ";";
+    PGresult *val_res = PQexec(this->db, q.c_str());
+    if (PQresultStatus(val_res) != PGRES_TUPLES_OK) {
+        return nullptr;
+    }
+    int nrows = PQntuples(val_res);
+    listOfTweets->tweets = new std::vector<Tweet *>();
+    for (int i = 0; i < nrows; i++) {
+        auto *tweet = new Tweet;
+        //TODO хрупкий код atoi может бросить ошибку
+        tweet->id = atoi(PQgetvalue(val_res, i, TWEET_ID));
+        tweet->title = PQgetvalue(val_res, i, TWEET_TITLE);
+        tweet->body = PQgetvalue(val_res, i, TWEET_BODY);
+        strptime(
+                (const char *) PQgetvalue(val_res, i, TWEET_CREATED_AT),
+                "%Y-%m-%d %H:%M:%S",
+                &tweet->createdAt
+        );
+        listOfTweets->tweets->push_back(tweet);
+    }
+    return listOfTweets;
+}
+
+void TweetRepository::createUserTweet(TweetDto *tweetDto, long userId) {
+    std::string q = "INSERT INTO tweet (title, body, user_id) VALUES ('"
+                    + tweetDto->title + "', '" + tweetDto->body + "', " + std::to_string(userId) + ");";
+    PQexec(this->db, q.c_str());  // TODO отловить ошибки
+}
+
+void TweetRepository::deleteUserTweet(long tweetId, long userId) {
+    std::string q = "DELETE FROM tweet WHERE user_id = " + std::to_string(userId)
+                    + " AND  ID = " + std::to_string(tweetId) + ";";
+    PQexec(this->db, q.c_str());  // TODO отловить ошибки
+};

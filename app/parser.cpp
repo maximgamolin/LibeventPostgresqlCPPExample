@@ -94,3 +94,34 @@ CreateUserDto *createUserDtoFromJson(const std::string &createUserJsonStr) {
 
     return createUserDto;
 }
+
+TweetDto *createTweetDtoFromJson(const std::string &tweetRaw) {
+    // TODO чистить строку в опасности sql-injection
+    json_error_t error;
+    json_t *createTweetJson = json_loads(tweetRaw.c_str(), 0, &error);
+    if (!createTweetJson) {
+        fprintf(stderr, "error: on line %d: %s\n", error.line, error.text);
+        return nullptr;
+    };
+    auto tweetDto = new TweetDto;
+    //получаем заголовок
+    json_t *title = json_object_get(createTweetJson, "title");
+    if (!json_is_string(title)) {
+        fprintf(stderr, "title: is not a string");
+        json_decref(createTweetJson);
+        return nullptr;
+    }
+    tweetDto->title = json_string_value(title);
+    delete title;
+    //получаем тело
+    json_t *body = json_object_get(createTweetJson, "body");
+    if (!json_is_string(body)) {
+        fprintf(stderr, "body: is not a string");
+        json_decref(createTweetJson);
+        return nullptr;
+    }
+    tweetDto->body = json_string_value(body);
+    delete body;
+
+    return tweetDto;
+}
